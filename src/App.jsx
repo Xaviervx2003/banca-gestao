@@ -3,7 +3,7 @@ import {
   Home, LayoutDashboard, CalendarDays, Menu, Play, ArrowRight,
   CheckCircle2, XCircle, Trash2, PlusCircle, TrendingUp, Layers, GitMerge,
   RotateCcw, BarChart2, Calculator, Flame, Award, AlertCircle,
-  Tag, Download, Flag, X
+  Tag, Download, Flag, X, LogOut, Cloud, CloudOff
 } from 'lucide-react';
 import {
   BarChart, Bar, Cell, LineChart, Line,
@@ -12,6 +12,9 @@ import {
 
 import './index.css';
 import { useBanca }       from './hooks/useBanca';
+import { useAuth }        from './hooks/useAuth';
+import { useCloud }       from './hooks/useCloud';
+import Login              from './components/Login';
 import BancaChart         from './components/BancaChart';
 import DayItem            from './components/DayItem';
 import RecoveryModal      from './components/RecoveryModal';
@@ -21,8 +24,28 @@ import { calcEstatisticas, oddNecessaria, sugerirDivisao, calcDutching, isEntrad
 
 export default function App() {
   const B = useBanca();
+  const { user, loading: authLoading, logout } = useAuth();
+  const { deletarNuvem } = useCloud(user, B.challenge, B.setChallenge);
+
+  // ── tela de loading enquanto verifica sessão ──
+  if (authLoading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0f14' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 24, fontWeight: 800, background: 'linear-gradient(135deg,#4f6ef7,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 12 }}>BancaControl</div>
+        <div style={{ fontSize: 13, color: '#4e5568' }}>Carregando...</div>
+      </div>
+    </div>
+  );
+
+  // ── tela de login se não autenticado ──
+  if (!user) return <Login />;
+
   const handleModalConfirm = (tipo, recuperar) => {
-    if (tipo === 'reset')     { B.resetarDesafio(); return; }
+    if (tipo === 'reset') {
+      deletarNuvem(); // apaga da nuvem também
+      B.resetarDesafio();
+      return;
+    }
     if (tipo === 'resultado') { B.confirmarResultadoDia(recuperar); }
   };
   const closeModal = () => B.setModal({ open: false, type: null, retornoFinal: 0 });
@@ -50,6 +73,27 @@ export default function App() {
             </div>
           ))}
         </nav>
+
+        {/* avatar + logout */}
+        <div className="sidebar-user">
+          <img
+            src={user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
+            alt="avatar"
+            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.user_metadata?.full_name || user.email?.split('@')[0]}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.email}
+            </div>
+          </div>
+          <button onClick={logout} title="Sair" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 4, flexShrink: 0 }}>
+            <LogOut size={15} />
+          </button>
+        </div>
+
         {B.challenge && (
           <div className="sidebar-footer">
             <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>Progresso</div>
@@ -70,7 +114,11 @@ export default function App() {
           <button className="hamburger" onClick={() => B.setSidebarOpen(!B.sidebarOpen)}><Menu size={20} /></button>
           <div style={{ textAlign: 'center' }}>
             <div className="topbar-title">BancaControl</div>
-            <div className="topbar-sub">{B.screen === 'dia' ? `Dia ${B.diaAtual?.dia} — ${MODO_LABELS[B.modo] || ''}` : 'Gestão Progressiva'}</div>
+            <div className="topbar-sub" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              {B.screen === 'dia'
+                ? `Dia ${B.diaAtual?.dia} — ${MODO_LABELS[B.modo] || ''}`
+                : <><Cloud size={10} color="#22c55e" /><span>sincronizado</span></>}
+            </div>
           </div>
           <div className="topbar-actions">
             {B.challenge && ['dashboard','dias','estatisticas'].includes(B.screen) && (
