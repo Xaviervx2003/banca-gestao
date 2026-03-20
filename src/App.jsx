@@ -9,7 +9,7 @@ import {
   BarChart, Bar, Cell, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
- 
+
 import './index.css';
 import { useBanca }       from './hooks/useBanca';
 import BancaChart         from './components/BancaChart';
@@ -18,7 +18,7 @@ import RecoveryModal      from './components/RecoveryModal';
 import { brl, compact }   from './utils/formatters';
 import { TAGS_DISPONIVEIS, MODO_LABELS, MODO_COLORS } from './utils/constants';
 import { calcEstatisticas, oddNecessaria, sugerirDivisao, calcDutching, isEntradaBloqueada, calcProbabilidade } from './utils/math';
- 
+
 export default function App() {
   const B = useBanca();
   const handleModalConfirm = (tipo, recuperar) => {
@@ -27,10 +27,10 @@ export default function App() {
   };
   const closeModal = () => B.setModal({ open: false, type: null, retornoFinal: 0 });
   const metaFinal  = B.challenge?.dias?.[B.challenge.dias.length - 1]?.metaOriginal ?? 0;
- 
+
   return (
     <div className="app">
- 
+
       {/* SIDEBAR */}
       <aside className={`sidebar ${B.sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
@@ -61,10 +61,10 @@ export default function App() {
         )}
       </aside>
       {B.sidebarOpen && <div className="sidebar-overlay" onClick={() => B.setSidebarOpen(false)} />}
- 
+
       {/* MAIN */}
       <main className="main">
- 
+
         {/* TOPBAR */}
         <div className="topbar">
           <button className="hamburger" onClick={() => B.setSidebarOpen(!B.sidebarOpen)}><Menu size={20} /></button>
@@ -93,7 +93,7 @@ export default function App() {
             )}
           </div>
         </div>
- 
+
         {/* HOME */}
         {B.screen === 'home' && (
           <div className="screen active page">
@@ -115,13 +115,13 @@ export default function App() {
             </div>
           </div>
         )}
- 
+
         {/* DASHBOARD */}
         {B.screen === 'dashboard' && B.challenge && (() => {
           const pct  = Math.min(100, ((B.challenge.bancaAtual - B.challenge.config.bancaInicial) / (metaFinal - B.challenge.config.bancaInicial)) * 100) || 0;
           const prox = B.challenge.dias.find((d) => d.status === 'pendente');
           const prob = calcProbabilidade(B.challenge.dias, B.challenge.config);
- 
+
           return (
             <div className="screen active page">
               <div className="banca-hero">
@@ -134,7 +134,7 @@ export default function App() {
                   <span>{brl(metaFinal)}</span>
                 </div>
               </div>
- 
+
               {prox && (
                 <div className="next-card" onClick={() => B.abrirDia(prox)}>
                   <div>
@@ -145,7 +145,7 @@ export default function App() {
                   <div className="next-arrow"><ArrowRight /></div>
                 </div>
               )}
- 
+
               {/* CARD PROBABILIDADE */}
               {prob && (
                 <div style={{
@@ -201,7 +201,7 @@ export default function App() {
                   </div>
                 </div>
               )}
- 
+
               <div className="dash-grid">
                 <div className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -214,7 +214,7 @@ export default function App() {
                     <BancaChart dias={B.challenge.dias} bancaInicial={B.challenge.config.bancaInicial} marcos={B.challenge.marcos || []} />
                   </div>
                 </div>
- 
+
                 <div className="card">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                     <Flag size={14} color="var(--amber)" />
@@ -260,7 +260,7 @@ export default function App() {
             </div>
           );
         })()}
- 
+
         {/* DIAS */}
         {B.screen === 'dias' && B.challenge && (
           <div className="screen active page">
@@ -268,7 +268,7 @@ export default function App() {
             <div className="dias-grid">{B.challenge.dias.map((d) => <DayItem key={d.dia} dia={d} onClick={B.abrirDia} />)}</div>
           </div>
         )}
- 
+
         {/* ESTATÍSTICAS */}
         {B.screen === 'estatisticas' && B.challenge && (() => {
           const stats = calcEstatisticas(B.challenge.dias, B.challenge.config);
@@ -276,7 +276,7 @@ export default function App() {
           const barData = Object.entries(stats.taxaPorModo).filter(([, v]) => v.total > 0).map(([k, v]) => ({ name: MODO_LABELS[k]?.split(' ')[0], taxa: parseFloat(v.taxa.toFixed(1)), total: v.total, cor: MODO_COLORS[k] }));
           const evolucaoData = [{ name: 'Início', Banca: stats.bancaInicial }, ...B.challenge.dias.filter((d) => d.status !== 'pendente').map((d) => ({ name: `D${d.dia}`, Banca: d.bancaFim ?? d.bancaInicio }))];
           const tagStats = TAGS_DISPONIVEIS.map((tag) => { const diasT = B.challenge.dias.filter((d) => (d.tags || []).includes(tag.id) && d.status !== 'pendente'); const ganhosT = diasT.filter((d) => d.status === 'ganhou').length; return { ...tag, total: diasT.length, ganhos: ganhosT, taxa: diasT.length ? (ganhosT / diasT.length) * 100 : 0 }; }).filter((t) => t.total > 0);
- 
+
           return (
             <div className="screen active page">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -360,7 +360,7 @@ export default function App() {
             </div>
           );
         })()}
- 
+
         {/* CALCULADORA */}
         {B.screen === 'calculadora' && (() => {
           const oddDiaria = oddNecessaria(parseFloat(B.calcBancaI), parseFloat(B.calcMeta), parseInt(B.calcDias));
@@ -369,7 +369,7 @@ export default function App() {
           const oddAtual  = B.challenge?.config?.oddDia;
           const diasNec   = oddDiaria && oddAtual ? Math.ceil(Math.log(parseFloat(B.calcMeta) / parseFloat(B.calcBancaI)) / Math.log(oddAtual)) : null;
           const projData  = oddDiaria ? Array.from({ length: parseInt(B.calcDias) + 1 }, (_, i) => ({ dia: i === 0 ? 'Início' : `D${i}`, Banca: parseFloat((parseFloat(B.calcBancaI) * Math.pow(oddDiaria, i)).toFixed(2)) })) : [];
- 
+
           return (
             <div className="screen active page">
               <div className="two-col-grid">
@@ -448,7 +448,7 @@ export default function App() {
             </div>
           );
         })()}
- 
+
         {/* DIA DETALHE */}
         {B.screen === 'dia' && B.diaAtual && (
           <div className="screen active page">
@@ -464,7 +464,7 @@ export default function App() {
                 </button>
               ))}
             </div>
- 
+
             {B.modo === 'misto' && (
               <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 180 }}>
@@ -479,7 +479,7 @@ export default function App() {
                 </div>
               </div>
             )}
- 
+
             <div className="dia-grid">
               {/* coluna esquerda */}
               <div>
@@ -494,7 +494,7 @@ export default function App() {
                     {B.modo === 'misto' && `Grupo (${B.grupoSize}): equalizadas. Livre (${B.entradas.length - B.grupoSize}): Soros.`}
                   </div>
                   {B.modo === 'misto' && <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--amber)', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>▸ GRUPO EQUALIZADO</div>}
- 
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {B.passos.map((passo, i) => {
                       const isGrupo = B.modo==='misto'&&i<B.grupoSize, isLivre = B.modo==='misto'&&i>=B.grupoSize, primLivre = B.modo==='misto'&&i===B.grupoSize;
@@ -536,25 +536,57 @@ export default function App() {
                               </div>
                             </div>
                             {passo.status==='pendente'&&!bloqueada && (
-                              <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                                <button className="btn btn-danger btn-sm" style={{ flex: 1, opacity: B.temErros?.4:1 }} disabled={B.temErros} onClick={() => B.registrarPasso(i,'perdeu')}><XCircle size={14} /> Red</button>
-                                <button className="btn btn-green  btn-sm" style={{ flex: 1, opacity: B.temErros?.4:1 }} disabled={B.temErros} onClick={() => B.registrarPasso(i,'ganhou')}><CheckCircle2 size={14} /> Green</button>
-                                {(B.modo!=='misto'||i>=B.grupoSize)&&B.entradas.length>1 && <button className="btn btn-ghost btn-sm" onClick={() => B.removerEntrada(i)}><Trash2 size={14} /></button>}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                                {/* linha Red / Green / Lixo */}
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button className="btn btn-danger btn-sm" style={{ flex: 1, opacity: B.temErros?.4:1 }} disabled={B.temErros} onClick={() => B.registrarPasso(i,'perdeu')}><XCircle size={14} /> Red</button>
+                                  <button className="btn btn-green  btn-sm" style={{ flex: 1, opacity: B.temErros?.4:1 }} disabled={B.temErros} onClick={() => B.registrarPasso(i,'ganhou')}><CheckCircle2 size={14} /> Green</button>
+                                  {(B.modo!=='misto'||i>=B.grupoSize)&&B.entradas.length>1 && <button className="btn btn-ghost btn-sm" onClick={() => B.removerEntrada(i)}><Trash2 size={14} /></button>}
+                                </div>
+                                {/* linha Cash Out */}
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 10, padding: '8px 10px' }}>
+                                  <span style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 700, whiteSpace: 'nowrap' }}>Cash Out:</span>
+                                  <input
+                                    type="number" step="0.01" min="0"
+                                    placeholder={`máx ${brl(passo.retornoFull ?? passo.retorno)}`}
+                                    id={`cashout-${i}`}
+                                    style={{ flex: 1, padding: '6px 10px', fontSize: 13, fontFamily: 'monospace', background: 'var(--bg3)', borderColor: 'rgba(245,158,11,0.3)' }}
+                                  />
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ color: 'var(--amber)', borderColor: 'rgba(245,158,11,0.35)', whiteSpace: 'nowrap' }}
+                                    onClick={() => {
+                                      const el = document.getElementById(`cashout-${i}`);
+                                      const v  = parseFloat(el?.value);
+                                      if (!isNaN(v) && v >= 0) B.registrarCashout(i, v);
+                                    }}
+                                  >
+                                    Saída parcial
+                                  </button>
+                                </div>
                               </div>
                             )}
                             {passo.status==='ganhou' && <div style={{ marginTop:8,padding:'8px 12px',background:'rgba(34,197,94,0.1)',color:'var(--green)',borderRadius:8,fontSize:13,fontWeight:700 }}><CheckCircle2 size={15} style={{ display:'inline',marginBottom:-3,marginRight:4 }} /> Green! → {brl(passo.retorno)}</div>}
                             {passo.status==='perdeu' && <div style={{ marginTop:8,padding:'8px 12px',background:'rgba(239,68,68,0.1)',color:'var(--red)',borderRadius:8,fontSize:13,fontWeight:700 }}><XCircle size={15} style={{ display:'inline',marginBottom:-3,marginRight:4 }} /> Red. Perdeu {brl(passo.apostado)}</div>}
+                            {passo.status==='cashout' && (
+                              <div style={{ marginTop:8,padding:'8px 12px',background:'rgba(245,158,11,0.1)',color:'var(--amber)',borderRadius:8,fontSize:13,fontWeight:700 }}>
+                                ⚡ Cash Out — Apostei {brl(passo.apostado)} → Recebi {brl(passo.retorno)}
+                                <span style={{ fontSize:11,fontWeight:400,color:'rgba(245,158,11,0.7)',marginLeft:8 }}>
+                                  ({passo.retorno >= passo.apostado ? '+' : ''}{brl(passo.retorno - passo.apostado)})
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </React.Fragment>
                       );
                     })}
                   </div>
- 
+
                   <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={B.adicionarEntrada}><PlusCircle size={16} /> Adicionar entrada</button>
- 
+
                   {B.modo === 'media' ? (() => {
                     const meta=B.diaAtual.meta, banca=B.bancaEfetiva;
-                    const ganhouVal=parseFloat(B.passos.filter(p=>p.status==='ganhou').reduce((a,p)=>a+p.retorno,0).toFixed(2));
+                    const ganhouVal=parseFloat(B.passos.filter(p=>p.status==='ganhou'||p.status==='cashout').reduce((a,p)=>a+p.retorno,0).toFixed(2));
                     const perdeuVal=parseFloat(B.passos.filter(p=>p.status==='perdeu').reduce((a,p)=>a+p.apostado,0).toFixed(2));
                     const pendentes=B.passos.filter(p=>p.status==='pendente');
                     const maxPoss=parseFloat((ganhouVal+pendentes.reduce((a,p)=>a+p.retorno,0)).toFixed(2));
@@ -567,13 +599,13 @@ export default function App() {
                         <div style={{ padding:'16px 18px' }}>
                           <div style={{ display:'flex',flexDirection:'column',gap:7,marginBottom:16 }}>
                             {B.passos.map((p,i) => {
-                              const isPend=p.status==='pendente',isWin=p.status==='ganhou';
+                              const isPend=p.status==='pendente',isWin=p.status==='ganhou',isCO=p.status==='cashout';
                               return <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12 }}>
                                 <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-                                  <span style={{ width:18,height:18,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,flexShrink:0,background:isWin?'rgba(34,197,94,0.2)':isPend?'rgba(255,255,255,0.07)':'rgba(239,68,68,0.2)',color:isWin?'var(--green)':isPend?'var(--text3)':'var(--red)' }}>{isWin?'✓':isPend?'?':'✕'}</span>
+                                  <span style={{ width:18,height:18,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,flexShrink:0,background:isWin?'rgba(34,197,94,0.2)':isCO?'rgba(245,158,11,0.2)':isPend?'rgba(255,255,255,0.07)':'rgba(239,68,68,0.2)',color:isWin?'var(--green)':isCO?'var(--amber)':isPend?'var(--text3)':'var(--red)' }}>{isWin?'✓':isCO?'⚡':isPend?'?':'✕'}</span>
                                   <span style={{ color:'var(--text3)' }}>E{i+1} @ {p.odd.toFixed?p.odd.toFixed(2):p.odd}x — {brl(p.apostado)}</span>
                                 </div>
-                                <span style={{ fontWeight:700,fontFamily:'monospace',color:isWin?'var(--green)':isPend?'var(--text2)':'var(--red)' }}>{isWin?`+${brl(p.retorno-p.apostado)}`:isPend?brl(p.retorno):`-${brl(p.apostado)}`}</span>
+                                <span style={{ fontWeight:700,fontFamily:'monospace',color:isWin?'var(--green)':isCO?'var(--amber)':isPend?'var(--text2)':'var(--red)' }}>{isWin?`+${brl(p.retorno-p.apostado)}`:isCO?brl(p.retorno):isPend?brl(p.retorno):`-${brl(p.apostado)}`}</span>
                               </div>;
                             })}
                           </div>
@@ -616,7 +648,7 @@ export default function App() {
                   )}
                 </div>
               </div>
- 
+
               {/* coluna direita */}
               <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
                 <div className="card" style={{ border:B.diaAtual.aporte>0?'1px solid rgba(34,197,94,0.3)':'1px solid var(--border)',background:B.diaAtual.aporte>0?'rgba(34,197,94,0.04)':'var(--bg2)' }}>
@@ -634,7 +666,7 @@ export default function App() {
                     {B.diaAtual.aporte>0 && <div style={{ fontSize:12,color:'var(--green)',marginTop:4,textAlign:'right' }}>{brl(B.diaAtual.bancaInicio)} + {brl(B.diaAtual.aporte)} aporte</div>}
                   </div>
                 </div>
- 
+
                 <div className="card">
                   <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:12 }}><Tag size={14} color="var(--accent2)" /><div className="section-title" style={{ fontSize:14 }}>Mercados & Anotações</div></div>
                   <div style={{ marginBottom:14 }}>
@@ -648,7 +680,7 @@ export default function App() {
                   </div>
                   <textarea placeholder="Análise de jogos, mercados, escanteios..." value={B.diaAtual.anotacao} onChange={(e) => B.salvarAnotacao(e.target.value)} />
                 </div>
- 
+
                 <div className="card">
                   <div className="section-title" style={{ fontSize:14,marginBottom:14 }}>Resumo do dia</div>
                   <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
@@ -665,7 +697,7 @@ export default function App() {
                     ))}
                   </div>
                 </div>
- 
+
                 {B.modo==='misto' && (
                   <div className="card" style={{ background:'rgba(245,158,11,0.05)',borderColor:'rgba(245,158,11,0.2)' }}>
                     <div className="section-title" style={{ fontSize:13,marginBottom:10,color:'var(--amber)' }}>Cenários grupo ({B.grupoSize})</div>
@@ -682,11 +714,10 @@ export default function App() {
             </div>
           </div>
         )}
- 
+
       </main>
- 
+
       <RecoveryModal modal={B.modal} diaAtual={B.diaAtual} onConfirm={handleModalConfirm} onClose={closeModal} onExportCSV={B.exportarCSV} onExportTxt={B.exportarTexto} onResetarDia={B.resetarDia} />
     </div>
   );
 }
- 

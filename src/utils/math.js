@@ -15,14 +15,19 @@ export const calcSoros = (entradas, bancaInicio) => {
   return entradas.map((e) => {
     const o           = parseFloat(e.odd) || 1;
     const apostadoCalc = parseFloat(val.toFixed(2));
-    // só primeira entrada pode ter valor manual (nas demais o Soros define)
     const apostado    = e.apostadoReal != null && e.apostadoReal !== '' && val === bancaInicio
       ? parseFloat(parseFloat(e.apostadoReal).toFixed(2))
       : apostadoCalc;
-    const retorno  = parseFloat((apostado * o).toFixed(2));
-    const lucro    = parseFloat((retorno - apostado).toFixed(2));
-    if (e.status !== 'perdeu') val = retorno; else val = 0;
-    return { ...e, apostado, retorno, lucro, apostadoCalc };
+    const retornoFull = parseFloat((apostado * o).toFixed(2));
+    // cashout: retorna o valor parcial que o usuário recebeu
+    const retorno = e.status === 'cashout' && e.cashoutValor != null
+      ? parseFloat(parseFloat(e.cashoutValor).toFixed(2))
+      : retornoFull;
+    const lucro = parseFloat((retorno - apostado).toFixed(2));
+    if (e.status === 'perdeu')   val = 0;
+    else if (e.status === 'cashout') val = retorno;
+    else val = retorno;
+    return { ...e, apostado, retorno, retornoFull, lucro, apostadoCalc };
   });
 };
 
@@ -31,16 +36,19 @@ export const calcMedia = (entradas, bancaInicio) => {
   const somaInv = odds.reduce((acc, o) => acc + 1 / o, 0);
   const R       = bancaInicio / somaInv;
   return entradas.map((e) => {
-    const o          = parseFloat(e.odd) || 1;
-    // se usuário digitou um valor real, usa ele; senão usa o calculado
+    const o            = parseFloat(e.odd) || 1;
     const apostadoCalc = parseFloat((R / o).toFixed(2));
     const apostado     = e.apostadoReal != null && e.apostadoReal !== ''
       ? parseFloat(parseFloat(e.apostadoReal).toFixed(2))
       : apostadoCalc;
-    // retorno baseado no valor real apostado * odd
-    const retorno  = e.status === 'ganhou' ? parseFloat((apostado * o).toFixed(2)) : 0;
-    const lucro    = parseFloat((retorno - apostado).toFixed(2));
-    return { ...e, apostado, retorno, lucro, apostadoCalc };
+    const retornoFull  = parseFloat((apostado * o).toFixed(2));
+    // cashout: retorno parcial informado pelo usuário
+    const retorno = e.status === 'ganhou'  ? retornoFull
+                  : e.status === 'cashout' && e.cashoutValor != null
+                    ? parseFloat(parseFloat(e.cashoutValor).toFixed(2))
+                    : 0;
+    const lucro = parseFloat((retorno - apostado).toFixed(2));
+    return { ...e, apostado, retorno, retornoFull, lucro, apostadoCalc };
   });
 };
 
@@ -87,28 +95,33 @@ export const getRetornoFinal = (passos, modo) => {
   if (!passos.length) return 0;
   if (modo === 'soros' || modo === 'misto') {
     const ultimo = passos[passos.length - 1];
-    return ultimo.status === 'perdeu' ? 0 : ultimo.retorno;
+    if (ultimo.status === 'perdeu') return 0;
+    return ultimo.retorno; // cashout já tem retorno parcial calculado
   }
   if (modo === 'media') {
     return parseFloat(
-      passos.filter((p) => p.status === 'ganhou').reduce((a, p) => a + p.retorno, 0).toFixed(2)
+      passos
+        .filter((p) => p.status === 'ganhou' || p.status === 'cashout')
+        .reduce((a, p) => a + p.retorno, 0)
+        .toFixed(2)
     );
   }
   return 0;
 };
 
 export const isDiaConcluido = (entradas, modo, grupoSize = 2) => {
+  const concluida = (e) => e.status === 'ganhou' || e.status === 'perdeu' || e.status === 'cashout';
   if (modo === 'soros') {
-    return entradas.some((e) => e.status === 'perdeu') ||
+    return entradas.some((e) => e.status === 'perdeu' || e.status === 'cashout') ||
            entradas.every((e) => e.status === 'ganhou');
   }
-  if (modo === 'media') return entradas.every((e) => e.status !== 'pendente');
+  if (modo === 'media') return entradas.every(concluida);
   if (modo === 'misto') {
     const grupo  = entradas.slice(0, grupoSize);
     const livres = entradas.slice(grupoSize);
-    if (!grupo.every((e) => e.status !== 'pendente')) return false;
+    if (!grupo.every(concluida)) return false;
     if (!livres.length) return true;
-    if (livres.some((e) => e.status === 'perdeu')) return true;
+    if (livres.some((e) => e.status === 'perdeu' || e.status === 'cashout')) return true;
     return livres.every((e) => e.status === 'ganhou');
   }
   return false;
@@ -116,11 +129,12 @@ export const isDiaConcluido = (entradas, modo, grupoSize = 2) => {
 
 export const isEntradaBloqueada = (entradas, index, modo, grupoSize = 2) => {
   if (entradas[index].status !== 'pendente') return true;
-  if (modo === 'soros') return entradas.slice(0, index).some((e) => e.status === 'perdeu');
+  const encerrada = (e) => e.status === 'perdeu' || e.status === 'cashout';
+  if (modo === 'soros') return entradas.slice(0, index).some(encerrada);
   if (modo === 'media') return false;
   if (modo === 'misto') {
     if (index < grupoSize) return false;
-    return entradas.slice(grupoSize, index).some((e) => e.status === 'perdeu');
+    return entradas.slice(grupoSize, index).some(encerrada);
   }
   return false;
 };

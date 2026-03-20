@@ -153,9 +153,25 @@ export function useBanca() {
   // ─── REGISTRAR PASSO ────────────────────────────────────────────────────────
   const registrarPasso = (index, resultado) => {
     if (temErros) return;
-    // salva snapshot das entradas antes de mudar (para undo)
     setUndoStack((prev) => [...prev.slice(-9), [...entradas]]);
     const novas = entradas.map((e, i) => i === index ? { ...e, status: resultado } : e);
+    setEntradas(novas);
+    const bancaEfetiva = parseFloat(((diaAtual.bancaInicio || 0) + (diaAtual.aporte || 0)).toFixed(2));
+    if (isDiaConcluido(novas, modo, grupoSize)) {
+      const ps  = calcularPassos(novas, bancaEfetiva, modo, grupoSize);
+      const ret = getRetornoFinal(ps, modo);
+      setModal({ open: true, type: ret >= diaAtual.meta * 0.99 ? 'ganhou' : 'perdeu', retornoFinal: ret });
+    }
+  };
+
+  // ─── CASH OUT ────────────────────────────────────────────────────────────────
+  const registrarCashout = (index, valorRecebido) => {
+    const v = parseFloat(valorRecebido);
+    if (isNaN(v) || v < 0) return;
+    setUndoStack((prev) => [...prev.slice(-9), [...entradas]]);
+    const novas = entradas.map((e, i) =>
+      i === index ? { ...e, status: 'cashout', cashoutValor: v } : e
+    );
     setEntradas(novas);
     const bancaEfetiva = parseFloat(((diaAtual.bancaInicio || 0) + (diaAtual.aporte || 0)).toFixed(2));
     if (isDiaConcluido(novas, modo, grupoSize)) {
@@ -423,7 +439,7 @@ export function useBanca() {
     navigateTo, handleModoChange, atualizarOdd,
     iniciarDesafio, abrirDia,
     registrarPasso, adicionarEntrada, removerEntrada,
-    desfazerUltimo, atualizarApostadoReal,
+    desfazerUltimo, atualizarApostadoReal, registrarCashout,
     confirmarResultadoDia, resetarDia, resetarDesafio,
     salvarAporte, salvarAnotacao,
     toggleTag, adicionarMarco, removerMarco,
