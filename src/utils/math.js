@@ -199,3 +199,71 @@ export const calcEstatisticas = (dias, config) => {
     melhorDia, piorDia, lucroMedio,
   };
 };
+
+// ─── PROBABILIDADE DE BATER A META ───────────────────────────────────────────
+export const calcProbabilidade = (dias, config) => {
+  if (!dias?.length || !config) return null;
+  const jogados   = dias.filter((d) => d.status !== 'pendente');
+  const ganhos    = jogados.filter((d) => d.status === 'ganhou').length;
+  const restantes = dias.filter((d) => d.status === 'pendente').length;
+  if (jogados.length < 3) return { prob: null, msg: 'Jogue pelo menos 3 dias para calcular' };
+  if (restantes === 0)    return { prob: null, msg: 'Desafio concluído' };
+  const taxa      = ganhos / jogados.length;
+  const metaFinal = dias[dias.length - 1].metaOriginal;
+  const bancaAtual = jogados.length
+    ? (jogados[jogados.length - 1].bancaFim ?? parseFloat(config.bancaInicial))
+    : parseFloat(config.bancaInicial);
+  const oddDia = parseFloat(config.oddDia);
+  let minGreens = restantes + 1;
+  for (let g = 0; g <= restantes; g++) {
+    if (bancaAtual * Math.pow(oddDia, g) >= metaFinal) { minGreens = g; break; }
+  }
+  if (minGreens > restantes) return { prob: 0, taxa, ganhos, jogados: jogados.length, restantes, minGreens, bancaAtual, metaFinal, bancaProjetada: bancaAtual * Math.pow(oddDia, Math.round(restantes * taxa)), greensEsperados: Math.round(restantes * taxa) };
+  const binom = (n, k) => { if (k > n) return 0; if (k === 0 || k === n) return 1; let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return r; };
+  let prob = 0;
+  for (let k = minGreens; k <= restantes; k++) prob += binom(restantes, k) * Math.pow(taxa, k) * Math.pow(1 - taxa, restantes - k);
+  const greensEsperados = Math.round(restantes * taxa);
+  return {
+    prob: Math.min(1, Math.max(0, prob)),
+    taxa, ganhos, jogados: jogados.length, restantes, minGreens,
+    bancaAtual, bancaProjetada: parseFloat((bancaAtual * Math.pow(oddDia, greensEsperados)).toFixed(2)),
+    metaFinal, greensEsperados,
+  };
+};
+
+// ─── PROBABILIDADE DE BATER A META ───────────────────────────────────────────
+export const calcProbabilidade = (dias, config) => {
+  if (!dias?.length || !config) return null;
+  const jogados   = dias.filter((d) => d.status !== 'pendente');
+  const ganhos    = jogados.filter((d) => d.status === 'ganhou').length;
+  const restantes = dias.filter((d) => d.status === 'pendente').length;
+  if (jogados.length < 3) return { prob: null, msg: 'Jogue pelo menos 3 dias para calcular' };
+  if (restantes === 0)    return { prob: null, msg: 'Desafio concluído' };
+  const taxa      = ganhos / jogados.length;
+  const metaFinal = dias[dias.length - 1].metaOriginal;
+  const bancaAtual = jogados.length
+    ? (jogados[jogados.length - 1].bancaFim ?? parseFloat(config.bancaInicial))
+    : parseFloat(config.bancaInicial);
+  const oddDia = parseFloat(config.oddDia);
+  let minGreens = restantes + 1;
+  for (let g = 0; g <= restantes; g++) {
+    if (bancaAtual * Math.pow(oddDia, g) >= metaFinal) { minGreens = g; break; }
+  }
+  if (minGreens > restantes) {
+    return { prob: 0, taxa, ganhos, jogados: jogados.length, restantes, minGreens,
+      bancaAtual, metaFinal,
+      bancaProjetada: parseFloat((bancaAtual * Math.pow(oddDia, Math.round(restantes * taxa))).toFixed(2)),
+      greensEsperados: Math.round(restantes * taxa) };
+  }
+  const binom = (n, k) => { if (k > n) return 0; if (k === 0 || k === n) return 1; let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return r; };
+  let prob = 0;
+  for (let k = minGreens; k <= restantes; k++) prob += binom(restantes, k) * Math.pow(taxa, k) * Math.pow(1 - taxa, restantes - k);
+  const greensEsperados = Math.round(restantes * taxa);
+  return {
+    prob: Math.min(1, Math.max(0, prob)), taxa, ganhos,
+    jogados: jogados.length, restantes, minGreens,
+    bancaAtual, metaFinal,
+    bancaProjetada: parseFloat((bancaAtual * Math.pow(oddDia, greensEsperados)).toFixed(2)),
+    greensEsperados,
+  };
+};
